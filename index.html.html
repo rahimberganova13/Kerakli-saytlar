@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Yo'l Nazorati - Yo'l Infratuzilmasi Muammolarini Hal Qilish Tizimi</title>
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Plus Jakarta+Sans', sans-serif; }
+        #map { height: 100%; min-height: 450px; }
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: #f1f5f9; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+    </style>
+</head>
+<body class="bg-slate-900 text-slate-100 font-sans min-h-screen flex flex-col selection:bg-indigo-500 selection:text-white">
+
+    <!-- Header -->
+    <header class="bg-slate-800/80 backdrop-blur-md border-b border-slate-700/60 sticky top-0 z-40">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 py-4 flex flex-col sm:flex-row justify-between items-center gap-4">
+            <div class="flex items-center gap-3">
+                <div class="bg-gradient-to-tr from-indigo-600 to-violet-500 text-white p-3 rounded-2xl shadow-lg shadow-indigo-500/20 text-xl font-bold flex items-center justify-center">
+                    <i class="fa-solid fa-road"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl font-bold tracking-tight text-white flex items-center gap-2">
+                        Yo'l Nazorati <span class="text-[10px] bg-indigo-500/20 text-indigo-400 border border-indigo-500/30 px-2 py-0.5 rounded-full font-semibold">PRO</span>
+                    </h1>
+                    <p class="text-xs text-slate-400">Yo'l infratuzilmasi muammolarini kuzatish va tezkor hal etish tizimi</p>
+                </div>
+            </div>
+            <div class="flex items-center gap-3 w-full sm:w-auto justify-end">
+                <button onclick="openModal()" class="bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white px-5 py-2.5 rounded-xl font-semibold text-sm transition-all shadow-lg shadow-emerald-500/20 flex items-center gap-2 w-full sm:w-auto justify-center">
+                    <i class="fa-solid fa-plus-circle"></i> Muammo Qo'shish
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 py-6 flex-grow w-full grid grid-cols-1 lg:grid-cols-3 gap-6">
+        
+        <!-- Left Panel: Map & Stats -->
+        <div class="lg:col-span-2 flex flex-col gap-6">
+            <!-- Stats Row -->
+            <div class="grid grid-cols-3 gap-3 sm:gap-4">
+                <div class="bg-slate-800/60 backdrop-blur-sm p-4 rounded-2xl border border-slate-700/60 flex items-center justify-between shadow-sm">
+                    <div>
+                        <p class="text-[11px] text-slate-400 font-semibold uppercase tracking-wider">Jami</p>
+                        <h3 id="statTotal" class="text-2xl sm:text-3xl font-extrabold text-white mt-0.5">0</h3>
+                    </div>
+                    <div class="bg-indigo-500/10 text-indigo-400 p-3 rounded-xl border border-indigo-500/20 hidden sm:flex"><i class="fa-solid fa-list-check text-lg"></i></div>
+                </div>
+                <div class="bg-slate-800/60 backdrop-blur-sm p-4 rounded-2xl border border-slate-700/60 flex items-center justify-between shadow-sm">
+                    <div>
+                        <p class="text-[11px] text-amber-400/90 font-semibold uppercase tracking-wider">Jarayonda</p>
+                        <h3 id="statProgress" class="text-2xl sm:text-3xl font-extrabold text-amber-400 mt-0.5">0</h3>
+                    </div>
+                    <div class="bg-amber-500/10 text-amber-400 p-3 rounded-xl border border-amber-500/20 hidden sm:flex"><i class="fa-solid fa-clock-rotate-left text-lg"></i></div>
+                </div>
+                <div class="bg-slate-800/60 backdrop-blur-sm p-4 rounded-2xl border border-slate-700/60 flex items-center justify-between shadow-sm">
+                    <div>
+                        <p class="text-[11px] text-emerald-400/90 font-semibold uppercase tracking-wider">Hal qilindi</p>
+                        <h3 id="statResolved" class="text-2xl sm:text-3xl font-extrabold text-emerald-400 mt-0.5">0</h3>
+                    </div>
+                    <div class="bg-emerald-500/10 text-emerald-400 p-3 rounded-xl border border-emerald-500/20 hidden sm:flex"><i class="fa-solid fa-circle-check text-lg"></i></div>
+                </div>
+            </div>
+
+            <!-- Map Container -->
+            <div class="bg-slate-800/60 backdrop-blur-sm p-4 rounded-2xl border border-slate-700/60 flex flex-col flex-grow shadow-sm">
+                <div class="flex justify-between items-center mb-3">
+                    <h2 class="font-bold text-slate-300 text-xs uppercase tracking-wider flex items-center gap-2">
+                        <i class="fa-solid fa-map-location-dot text-indigo-400"></i> Muammolar Xaritasi
+                    </h2>
+                    <span class="text-[11px] text-slate-400 bg-slate-700/50 px-2.5 py-1 rounded-lg border border-slate-600/50">💡 Xaritadagi joyni bosing</span>
+                </div>
+                <div class="rounded-xl overflow-hidden border border-slate-700/60 flex-grow relative shadow-inner" style="min-height: 400px;">
+                    <div id="map" class="w-full h-full"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Panel: Issues List & Filters -->
+        <div class="bg-slate-800/60 backdrop-blur-sm p-4 rounded-2xl border border-slate-700/60 flex flex-col h-[650px] lg:h-auto shadow-sm">
+            <div class="flex justify-between items-center mb-3">
+                <h2 class="font-bold text-slate-300 text-xs uppercase tracking-wider flex items-center gap-2">
+                    <i class="fa-solid fa-clipboard-list text-indigo-400"></i> Ro'yxat
+                </h2>
+                <select id="statusFilter" onchange="renderIssues()" class="text-xs bg-slate-700/80 text-slate-200 border border-slate-600 rounded-lg px-2.5 py-1.5 outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer">
+                    <option value="all">Barchasi</option>
+                    <option value="Yangi">Yangi</option>
+                    <option value="Ko'rib chiqilmoqda">Ko'rib chiqilmoqda</option>
+                    <option value="Hal qilindi">Hal qilindi</option>
+                </select>
+            </div>
+
+            <!-- Search box -->
+            <div class="mb-3 relative">
+                <input type="text" id="searchInput" oninput="renderIssues()" placeholder="Sarlavha yoki manzil bo'yicha qidirish..." class="w-full text-xs bg-slate-700/50 text-slate-200 placeholder-slate-400 pl-9 pr-3 py-2.5 border border-slate-600/80 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500 transition-all">
+                <i class="fa-solid fa-magnifying-glass absolute left-3 top-3 text-slate-400 text-xs"></i>
+            </div>
+
+            <!-- Issues Scrollable List -->
+            <div id="issuesList" class="flex-grow overflow-y-auto space-y-3 pr-1 custom-scrollbar">
+                <!-- Dynamically populated -->
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Modal for adding issue -->
+    <div id="issueModal" class="fixed inset-0 bg-slate-950/70 backdrop-blur-md hidden items-center justify-center p-4 z-50">
+        <div class="bg-slate-800 border border-slate-700 rounded-3xl max-w-lg w-full p-6 shadow-2xl relative animate-in fade-in zoom-in duration-200">
+            <div class="flex justify-between items-center mb-5 pb-3 border-b border-slate-700/60">
+                <h3 class="font-bold text-white text-base flex items-center gap-2.5">
+                    <div class="bg-indigo-500/20 text-indigo-400 p-2 rounded-xl border border-indigo-500/30"><i class="fa-solid fa-triangle-exclamation"></i></div>
+                    Yangi muammo qo'shish
+                </h3>
+                <button onclick="closeModal()" class="text-slate-400 hover:text-white bg-slate-700/50 hover:bg-slate-700 w-8 h-8 rounded-full flex items-center justify-center transition-all"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+
+            <form id="issueForm" onsubmit="handleFormSubmit(event)" class="space-y-4">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-300 mb-1.5">Muammo sarlavhasi</label>
+                    <input type="text" id="title" required placeholder="Masalan: Katta chuqur va asfalt yotqizilmagan" class="w-full text-sm bg-slate-700/50 text-slate-100 placeholder-slate-400 px-3.5 py-2.5 border border-slate-600 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500">
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-300 mb-1.5">Muammo turi</label>
+                        <select id="category" class="w-full text-sm bg-slate-700 text-slate-100 px-3.5 py-2.5 border border-slate-600 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500">
+                            <option value="Chuqur">Chuqur / Yo'l yemirilishi</option>
+                            <option value="Yoritish">Yoritish tizimi</option>
+                            <option value="Belgi">Yo'l belgisi / Svetofor</option>
+                            <option value="Boshqa">Boshqa infratuzilma</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-300 mb-1.5">Muhimlik darajasi</label>
+                        <select id="priority" class="w-full text-sm bg-slate-700 text-slate-100 px-3.5 py-2.5 border border-slate-600 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500">
+                            <option value="Past">Past</option>
+                            <option value="O'rta">O'rta</option>
+                            <option value="Yuqori">Yuqori (Xavfli)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-300 mb-1.5">Manzil nomi / Mo'ljal</label>
+                    <input type="text" id="address" required placeholder="Masalan: Navoiy ko'chasi, 15-uy qarshisida" class="w-full text-sm bg-slate-700/50 text-slate-100 placeholder-slate-400 px-3.5 py-2.5 border border-slate-600 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500">
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-300 mb-1.5">Kenglik (Latitude)</label>
+                        <input type="number" step="any" id="lat" required class="w-full text-sm bg-slate-900/50 text-slate-300 px-3.5 py-2.5 border border-slate-700 rounded-xl outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-300 mb-1.5">Uzunlik (Longitude)</label>
+                        <input type="number" step="any" id="lng" required class="w-full text-sm bg-slate-900/50 text-slate-300 px-3.5 py-2.5 border border-slate-700 rounded-xl outline-none">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-300 mb-1.5">Qo'shimcha izoh</label>
+                    <textarea id="description" rows="2" placeholder="Muammo tafsilotlari..." class="w-full text-sm bg-slate-700/50 text-slate-100 placeholder-slate-400 px-3.5 py-2.5 border border-slate-600 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500 resize-none"></textarea>
+                </div>
+
+                <div class="flex justify-end gap-3 pt-3 border-t border-slate-700/60">
+                    <button type="button" onclick="closeModal()" class="px-5 py-2.5 text-xs font-semibold text-slate-300 hover:text-white bg-slate-700/50 hover:bg-slate-700 rounded-xl transition-all">Bekor qilish</button>
+                    <button type="submit" class="px-6 py-2.5 text-xs font-semibold bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 text-white rounded-xl shadow-lg shadow-indigo-600/25 transition-all">Saqlash</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="bg-slate-800/40 border-t border-slate-800 py-4 text-center text-xs text-slate-400">
+        Yo'l Nazorati Veb-Tizimi &copy; 2026. Barcha huquqlar himoyalangan.
+    </footer>
+
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    <script>
+        let issues = JSON.parse(localStorage.getItem('road_issues')) || [
+            {
+                id: 1,
+                title: "Katta chuqur va asfalt yemirilishi",
+                category: "Chuqur",
+                priority: "Yuqori",
+                address: "Amir Temur shoh ko'chasi, 45",
+                lat: 41.3111,
+                lng: 69.2797,
+                description: "Mashinalar qatnoviga jiddiy xavf tug'dirmoqda.",
+                status: "Yangi",
+                date: "2026-06-01"
+            },
+            {
+                id: 2,
+                title: "Ko'cha chirog'i ishlamayapti",
+                category: "Yoritish",
+                priority: "O'rta",
+                address: "Bunyodkor ko'chasi, 12",
+                lat: 41.2995,
+                lng: 69.2401,
+                description: "Kechki payt mutlaqo qorong'u bo'lib qoladi.",
+                status: "Ko'rib chiqilmoqda",
+                date: "2026-06-03"
+            },
+            {
+                id: 3,
+                title: "Svetofor vaqtinchalik o'chiq",
+                category: "Belgi",
+                priority: "Yuqori",
+                address: "Chilonzor 9-mavze",
+                lat: 41.2855,
+                lng: 69.2034,
+                description: "Piyodalar o'tish joyidagi svetofor sozlandi.",
+                status: "Hal qilindi",
+                date: "2026-05-28"
+            }
+        ];
+
+        let map;
+        let markers = [];
+        let tempMarker = null;
+
+        function initMap() {
+            map = L.map('map', { zoomControl: false }).setView([41.3111, 69.2797], 13);
+            L.control.zoom({ position: 'bottomright' }).addTo(map);
+
+            L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+                maxZoom: 19,
+                attribution: '&copy; OpenStreetMap & CARTO'
+            }).addTo(map);
+
+            map.on('click', function(e) {
+                document.getElementById('lat').value = e.latlng.lat.toFixed(5);
+                document.getElementById('lng').value = e.latlng.lng.toFixed(5);
+
+                if (tempMarker) map.removeLayer(tempMarker);
+                tempMarker = L.marker([e.latlng.lat, e.latlng.lng], {
+                    icon: L.divIcon({
+                        className: 'custom-temp-marker',
+                        html: '<div style="background:#f43f5e; width:14px; height:14px; border-radius:50%; border:3px solid #ffffff; box-shadow:0 0 10px #f43f5e;"></div>'
+                    })
+                }).addTo(map);
+
+                openModal();
+            });
+
+            renderMapMarkers();
+            renderIssues();
+        }
+
+        function renderMapMarkers() {
+            markers.forEach(m => map.removeLayer(m));
+            markers = [];
+
+            issues.forEach(issue => {
+                let color = issue.status === 'Hal qilindi' ? '#10b981' : (issue.status === "Ko'rib chiqilmoqda" ? '#f59e0b' : '#6366f1');
+                
+                let customIcon = L.divIcon({
+                    className: 'custom-marker',
+                    html: `<div style="background:${color}; width:16px; height:16px; border-radius:50%; border:3px solid #1e293b; box-shadow:0 0 8px ${color};"></div>`
+                });
+
+                let marker = L.marker([issue.lat, issue.lng], { icon: customIcon }).addTo(map);
+                marker.bindPopup(`
+                    <div style="font-family:'Plus Jakarta Sans',sans-serif; color:#1e293b; max-width: 220px; padding: 4px;">
+                        <span style="font-size:10px; font-weight:700; background:#e0e7ff; color:#4338ca; padding:2px 6px; border-radius:4px;">${issue.category}</span>
+                        <h4 style="font-weight:700; font-size:13px; margin:6px 0 2px 0; color:#0f172a;">${issue.title}</h4>
+                        <p style="font-size:11px; color:#64748b; margin:0 0 4px 0;">${issue.address}</p>
+                        <p style="font-size:11px; font-weight:700; color:${color};">Status: ${issue.status}</p>
+                    </div>
+                `);
+                markers.push(marker);
+            });
+        }
+
+        function renderIssues() {
+            const listEl = document.getElementById('issuesList');
+            const statusFilter = document.getElementById('statusFilter').value;
+            const searchInput = document.getElementById('searchInput').value.toLowerCase();
+
+            let filtered = issues.filter(issue => {
+                let matchesStatus = statusFilter === 'all' || issue.status === statusFilter;
+                let matchesSearch = issue.title.toLowerCase().includes(searchInput) || issue.address.toLowerCase().includes(searchInput);
+                return matchesStatus && matchesSearch;
+            });
+
+            document.getElementById('statTotal').innerText = issues.length;
+            document.getElementById('statProgress').innerText = issues.filter(i => i.status === "Ko'rib chiqilmoqda").length;
+            document.getElementById('statResolved').innerText = issues.filter(i => i.status === "Hal qilindi").length;
+
+            if (filtered.length === 0) {
+                listEl.innerHTML = `<div class="text-center py-12 text-slate-500 text-xs">Hech qanday muammo topilmadi</div>`;
+                return;
+            }
+
+            listEl.innerHTML = filtered.map(issue => {
+                let badgeClass = issue.status === 'Hal qilindi' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30' : (issue.status === "Ko'rib chiqilmoqda" ? 'bg-amber-500/10 text-amber-400 border-amber-500/30' : 'bg-indigo-500/10 text-indigo-400 border-indigo-500/30');
+                
+                return `
+                    <div class="p-3.5 rounded-2xl border border-slate-700/60 hover:border-indigo-500/50 transition-all bg-slate-800/40 flex flex-col gap-2.5">
+                        <div class="flex justify-between items-start">
+                            <span class="text-[10px] font-bold px-2 py-0.5 bg-slate-700 text-slate-300 rounded-lg">${issue.category}</span>
+                            <span class="text-[10px] font-bold px-2.5 py-0.5 border rounded-lg ${badgeClass}">${issue.status}</span>
+                        </div>
+                        <div>
+                            <h4 class="font-bold text-slate-100 text-xs sm:text-sm">${issue.title}</h4>
+                            <p class="text-xs text-slate-400 flex items-center gap-1.5 mt-1"><i class="fa-solid fa-location-dot text-indigo-400"></i> ${issue.address}</p>
+                        </div>
+                        <p class="text-xs text-slate-300 bg-slate-900/50 p-2.5 rounded-xl border border-slate-800">${issue.description || 'Izoh mavjud emas'}</p>
+                        <div class="flex justify-between items-center pt-2 border-t border-slate-700/60 text-[11px]">
+                            <span class="text-slate-400 flex items-center gap-1"><i class="fa-regular fa-calendar"></i> ${issue.date}</span>
+                            <div class="flex items-center gap-2">
+                                <select onchange="updateStatus(${issue.id}, this.value)" class="text-[10px] bg-slate-700 text-slate-200 border border-slate-600 rounded-lg px-2 py-1 outline-none cursor-pointer">
+                                    <option value="Yangi" ${issue.status === 'Yangi' ? 'selected' : ''}>Yangi</option>
+                                    <option value="Ko'rib chiqilmoqda" ${issue.status === "Ko'rib chiqilmoqda" ? 'selected' : ''}>Jarayonda</option>
+                                    <option value="Hal qilindi" ${issue.status === 'Hal qilindi' ? 'selected' : ''}>Hal qilindi</option>
+                                </select>
+                                <button onclick="focusOnMap(${issue.lat}, ${issue.lng})" class="text-indigo-400 hover:text-indigo-300 bg-indigo-500/10 p-1.5 rounded-lg border border-indigo-500/20 transition-all" title="Xaritada ko'rsatish">
+                                    <i class="fa-solid fa-map-pin"></i>
+                                </button>
+                                <button onclick="deleteIssue(${issue.id})" class="text-rose-400 hover:text-rose-300 bg-rose-500/10 p-1.5 rounded-lg border border-rose-500/20 transition-all" title="O'chirish">
+                                    <i class="fa-solid fa-trash-can"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function openModal() {
+            document.getElementById('issueModal').classList.remove('hidden');
+            document.getElementById('issueModal').classList.add('flex');
+            if(!document.getElementById('lat').value) {
+                document.getElementById('lat').value = '41.31110';
+                document.getElementById('lng').value = '69.27970';
+            }
+        }
+
+        function closeModal() {
+            document.getElementById('issueModal').classList.remove('flex');
+            document.getElementById('issueModal').classList.add('hidden');
+            if (tempMarker) {
+                map.removeLayer(tempMarker);
+                tempMarker = null;
+            }
+        }
+
+        function handleFormSubmit(e) {
+            e.preventDefault();
+            const newIssue = {
+                id: Date.now(),
+                title: document.getElementById('title').value,
+                category: document.getElementById('category').value,
+                priority: document.getElementById('priority').value,
+                address: document.getElementById('address').value,
+                lat: parseFloat(document.getElementById('lat').value),
+                lng: parseFloat(document.getElementById('lng').value),
+                description: document.getElementById('description').value,
+                status: "Yangi",
+                date: new Date().toISOString().split('T')[0]
+            };
+
+            issues.unshift(newIssue);
+            localStorage.setItem('road_issues', JSON.stringify(issues));
+            
+            document.getElementById('issueForm').reset();
+            closeModal();
+            renderMapMarkers();
+            renderIssues();
+        }
+
+        function updateStatus(id, newStatus) {
+            let issue = issues.find(i => i.id === id);
+            if (issue) {
+                issue.status = newStatus;
+                localStorage.setItem('road_issues', JSON.stringify(issues));
+                renderMapMarkers();
+                renderIssues();
+            }
+        }
+
+        function deleteIssue(id) {
+            if (confirm("Rostdan ham bu muammoni o'chirmoqchimisiz?")) {
+                issues = issues.filter(i => i.id !== id);
+                localStorage.setItem('road_issues', JSON.stringify(issues));
+                renderMapMarkers();
+                renderIssues();
+            }
+        }
+
+        function focusOnMap(lat, lng) {
+            map.setView([lat, lng], 16, { animate: true });
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        window.onload = initMap;
+    </script>
+</body>
+</html>
